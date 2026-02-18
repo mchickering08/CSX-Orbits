@@ -12,21 +12,18 @@ Planet class
 Ability to create a planet with those variables (not all)
 '''
 
-import numpy as np
+import math
 import matplotlib.pyplot as plt
 
 
-G = 6.67e-11 #Gravity constant 
-
-dt = 30.0 #Each step is 30 sec of sumulated time??
-
-m_host = 5.00e24 #mass 1 
-m_planet = 1.00e22 #mass 2
-
-#planet starts 4 mil meters to the right of the star
-planet_x = 4.00e6
-planet_y = 0.0
-
-#planet starts moving upward so it orbits
-planet_vx = 0.0
-planet_vy = 9130.991184
+G = 6.67e-11 #gravity ofc 
+class Planet:
+    def __init__(self, name, mass, x_init, y_init, vx_init, vy_init):
+        self.name = name
+        self.mass = mass
+        self.x = x_init
+        self.y = y_init
+        self.vx = vx_init
+        self.vy = vy_init
+        self.x_history = [x_init]
+        self.y_history = [y_init]  
