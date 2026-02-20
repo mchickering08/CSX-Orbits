@@ -33,26 +33,40 @@ class Planet:
         self.y_history.append(self.y)
         self.x_history.append(self.x)
 
-def acceleration_to_host(host, planet): #the a from gravity
-    x = planet.x
-    y = planet.y
-    r2 =x*x + y*y #squaring them!
-
+def acceleration_of_both(host, planet): #the a from gravity
+    dx = planet.x - host.x
+    dy = planet.y - host.y
+    r2 = dx*dx + dy*dy
     if r2 == 0:
-        return 0.0, 0.0 #no diving by 0
+        return 0.0, 0.0, 0.0, 0.0 #no diving by 0
     distance = math.sqrt(r2)
     distance_cubed = r2 * distance
 
-    ax = -(G*host.mass*x)/distance_cubed
-    ay = -(G*host.mass*y)/distance_cubed
-    return ax, ay
+    planet_acceleration_x = -(G*host.mass*dx)/distance_cubed
+    planet_acceleration_y = -(G*host.mass*dy)/distance_cubed
+
+    host_acceleration_x = +(G*planet.mass*dx)/distance_cubed
+    host_acceleration_y = +(G*planet.mass*dy)/distance_cubed
+
+    return planet_acceleration_x, planet_acceleration_y, host_acceleration_x, host_acceleration_y
 
 def fayman(host, planet, dt):
-    ax, ay = acceleration_to_host(host, planet)
-    planet.vx += ax*dt
-    planet.vy += ay*dt #update both velocities
-    planet.x += planet.vx * dt #update both points
+    planet_acceleration_x, planet_acceleration_y, host_acceleration_x, host_acceleration_y = acceleration_of_both(host, planet)
+
+    #update velocities
+    planet.vx += planet_acceleration_x*dt
+    planet.vy += planet_acceleration_y*dt
+    host.vx += host_acceleration_x*dt
+    host.vy += host_acceleration_y*dt
+
+    #update positions
+    planet.x += planet.vx * dt
     planet.y += planet.vy * dt
+
+    host.x += host.vx * dt
+    host.y += host.vy * dt
+
+    host.add_points()
     planet.add_points()
 
 host = Planet("Host", 1.99e30, 0.0, 0.0, 0.0, 0.0)
@@ -62,10 +76,13 @@ x0, y0 = starting_r, 0.0
 v_centripital = math.sqrt(G*host.mass/starting_r)
 #planet_eccentricity = 0.0167 #that is earths eccentricity but idk how to use it
 #last is at 1 to make it a circle
-planet = Planet("Planet", 5.97e24, x0, y0, 0.0, .9*v_centripital) #mass of earth
+planet = Planet("Planet", 5.97e24, x0, y0, 0.0, v_centripital) #mass of earth
 
+#total momentum zero
+host.vx = -(planet.mass/host.mass) * planet.vx
+host.vy = -(planet.mass/host.mass) * planet.vy
 
-dt = 63500
+dt = 903500
 rows = 12000 #idk what to call this but rows is wrong
 
 
@@ -81,7 +98,7 @@ ax.set_ylim(-view, view)
 
 
 
-ax.plot([0], [0], "o", markersize=8, label="Host")
+host_dot, = ax.plot([], [], "o", markersize=8, label="Host")
 
 planet_dot, = ax.plot([], [], "o", markersize=5, label="Planet")
 trail_line, = ax.plot([], [], "-", linewidth=2, alpha=0.9) #alpha is the opacity
@@ -90,23 +107,20 @@ ax.legend(loc="upper right")
 trail_length = 500 #u can change this idk
 
 def init():
+    host_dot.set_data([host.x], [host.y])
     planet_dot.set_data([], [])
     trail_line.set_data([], [])
-    return planet_dot, trail_line
+    return host_dot, planet_dot, trail_line
 
 def update(frame):
     fayman(host, planet, dt)
+    host_dot.set_data([host.x], [host.y])
     planet_dot.set_data([planet.x], [planet.y])
-    x_update = planet.x_history
-    y_update = planet.y_history
-    start = max(0, len(x_update)-trail_length) 
-    trail_line.set_data(x_update[start:], y_update[start:])
+    start = max(0, len(planet.x_history) - trail_length)
+    trail_line.set_data(planet.x_history[start:], planet.y_history[start:])
     t = frame*dt #frame times the delta t
     print("Time:", t) #print time
-    if frame == 500:
-        trail_line.set_alpha(0.4)
-        trail_line.set_color("tab:orange")
-    return planet_dot, trail_line
+    return host_dot, planet_dot, trail_line
 
 animation = FuncAnimation(fig, update, init_func=init, interval=20, blit=True)
 plt.show()
