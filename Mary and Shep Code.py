@@ -11,6 +11,7 @@
 | under Newtons Law of Universal Gravitation.                               |
 └───────────────────────────────────────────────────────────────────────────┘
 """
+import sys
 import math                                                                                 #For square root and other math functions
 import matplotlib.pyplot as plt                                                             #For graphing and animations
 from matplotlib.animation import FuncAnimation                                              #Tool to make animations
@@ -127,37 +128,101 @@ def fayman(host, planet, dt):
     host.add_points()                                                                       #Store host position in history
     planet.add_points()                                                                     #Store planet position in history
 
+    if use_planet3:
+        dx1 = planet3.x - host.x                                                            #Compute separation from star 1
+        dy1 = planet3.y - host.y                                                            #Compute separation from star 1
+        r1 = math.sqrt(dx1*dx1 + dy1*dy1)                                                   #Compute distance to star 1
+        a1x = -G*host.mass*dx1/(r1**3)                                                      #Compute acceleration from star 1
+        a1y = -G*host.mass*dy1/(r1**3)                                                      #Compute acceleration from star 1
 
-starting_r = 1.50e11                                                                        #Total seperation between stars
+        dx2 = planet3.x - planet.x                                                          #Compute separation from star 2
+        dy2 = planet3.y - planet.y                                                          #Compute separation from star 2
+        r2 = math.sqrt(dx2*dx2 + dy2*dy2)                                                   #Compute distance to star 2
+        a2x = -G*planet.mass*dx2/(r2**3)                                                    #Compute acceleration from star 2
+        a2y = -G*planet.mass*dy2/(r2**3)                                                    #Compute acceleration from star 2
 
-#host = Planet("Host", 1.99e30, 0.0, 0.0, 0.0, 0.0)                                         #Host as the sun
-host = Planet("Star 1", 1.0e30, -7.5e10, 0.0, 0.0, 0.0)                                     #First star in binary system
+        planet3.vx += (a1x + a2x) * dt                                                      #Update planet3 x velocity
+        planet3.vy += (a1y + a2y) * dt                                                      #Update planet3 y velocity
 
-circular_orbit = math.sqrt(G*host.mass/starting_r)                                          #Circular orbit speed (for single star)
-v_bin = math.sqrt(G*host.mass/(2*starting_r))                                               #Orbit speed for equal masses (binary system)
+        planet3.x += planet3.vx * dt                                                        #Update planet3 x position
+        planet3.y += planet3.vy * dt                                                        #Update planet3 y position
 
-#planet = Planet("Planet", 5.97e24, x0, y0, 0.0, circular_orbit)                            #Planet as the Earth
-planet = Planet("Star 2", 1.0e30, 7.5e10, 0.0, 0.0, v_bin)                                  #Second star in binary system (placed symetrically)
+        planet3.add_points()                                                                #Store planet3 history
 
-#Set host velocity for zero total momentum (so it does not drift)
-host.vx = -(planet.mass/host.mass)*planet.vx 
-host.vy = -(planet.mass/host.mass)*planet.vy 
+starting_r = 1.50e11                                                                        #Total seperation bodies
 
-dt = 36000                                                                                  #Timestep in seconds
+print("Choose simulation:")                                                                 #Prompt user
+print("1.) Earth orbiting the Sun")                                                         #Option 1
+print("2.) Binary star system")                                                             #Option 2
+print("3.) Planet orbiting binary star system")                                             #Option 3
+choice = input("Enter 1, 2 or 3: ")                                                         #Read user input
+
+if choice == "1":
+    host = Planet("Host", 1.99e30, 0.0, 0.0, 0.0, 0.0)                                      #Create sun
+
+    circular_orbit = math.sqrt(G*host.mass/starting_r)                                      #Compute circular velocity
+    planet = Planet("Planet", 5.97e24, starting_r, 0.0, 0.0, circular_orbit)                #Create earth
+
+    host.vx = -(planet.mass/host.mass)*planet.vx                                            #Set zero momentum x
+    host.vy = -(planet.mass/host.mass)*planet.vy                                            #Set zero momentum y
+
+    use_second_star = False                                                                 #No second star
+    use_planet3 = False                                                                     #No third body
+
+elif choice == "2":
+    host = Planet("Star 1", 1.0e30, -7.5e10, 0.0, 0.0, 0.0)                                 #Create first star
+    planet = Planet("Star 2", 1.0e30, 7.5e10, 0.0, 0.0, 0.0)                                #Create second star
+
+    v_bin = math.sqrt(G*host.mass/(2*starting_r))                                           #Compute binary velocity
+    host.vy = -v_bin                                                                        #Assign opposite velocity
+    planet.vy = v_bin                                                                       #Assign opposite velocity
+
+    use_second_star = True                                                                  #Binary active
+    use_planet3 = False                                                                     #No third body
+
+elif choice == "3":
+    host = Planet("Star 1", 1.0e30, -7.5e10, 0.0, 0.0, 0.0)                                 #Create first star
+    planet = Planet("Star 2", 1.0e30, 7.5e10, 0.0, 0.0, 0.0)                                #Create second star
+    
+    v_bin = math.sqrt(G*host.mass/(2*starting_r))                                           #Compute binary velocity
+    host.vy = -v_bin                                                                        #Assign opposite velocity
+    planet.vy = v_bin                                                                       #Assign opposite velocity
+
+    planet3_accleraton = math.sqrt(G*(host.mass + planet.mass)/6.0e11)                      #Compute planet3 velocity
+    planet3 = Planet("Planet", 5.97e24, 6.0e11, 0.0, 0.0, planet3_accleraton)               #Create third body
+
+    use_second_star = True                                                                  #Binary active
+    use_planet3 = True                                                                      #Third body active
+
+else:
+    print("Invalid choice. Program is ending.")                                             #Display error
+    sys.exit()                                                                              #Stop program
+
+
+dt = 360000                                                                                 #Set timestep   
 
 fig, ax = plt.subplots()                                                                    #Creatre figure and axes
 ax.set_aspect("equal", adjustable="box")                                                    #Prevent distorted orbit
-#ax.set_title("Planet Rotating Host")                                                       #Graph title for host-planet orbit
-ax.set_title("Binary Star System!")                                                         #Graph title for binary star system
-ax.set_xlabel("x (m)")                                                                      #X-axis labeled
-ax.set_ylabel("y (m)")                                                                      #Y-axis labeled
+if choice == "1":
+    ax.set_title("Planet Orbiting Host")                                                    #Set title
+    view = 1.2*starting_r                                                                   #Set view window
+elif choice == "2":
+    ax.set_title("Binary Star System!")                                                     #Set title
+    view = 3*starting_r                                                                     #Set view window
+else:
+    ax.set_title("Planet Orbiting Binary Star System!!")                                    #Set title
+    view = 5*starting_r                                                                     #Set view window
 
-view = 1.4*starting_r                                                                       #Set view window
-ax.set_xlim(-view, view)                                                                    #Horizontal limits
-ax.set_ylim(-view, view)                                                                    #Vertical limits
+ax.set_xlim(-view, view)                                                                    #Set x limits
+ax.set_ylim(-view, view)                                                                    #Set y limits
+ax.set_xlabel("x (m)")                                                                      #Label x axis
+ax.set_ylabel("y (m)")                                                                      #Label y axis                                                                 
 
-host_dot, = ax.plot([], [], "o", markersize=8, label="Host")                                #Host marker
-planet_dot, = ax.plot([], [], "o", markersize=5, label="Planet")                            #Planet marker
+
+host_dot, = ax.plot([], [], "o", markersize=8, label=host.name)                             #Host marker
+planet_dot, = ax.plot([], [], "o", markersize=5, label=planet.name)                         #Planet marker
+planet3_dot, = ax.plot([], [], "o", markersize=4, label="Planet")                           #Planet marker for orbitting binary star
+planet3_trail, = ax.plot([], [], "-", linewidth=2, alpha=0.8)                               #Planet trail line
 trail_line, = ax.plot([], [], "-", linewidth=2, alpha=0.9)                                  #Planet trail line
 host_trail_line, = ax.plot([], [], "-", linewidth=2, alpha=0.6)                             #Host trail line
 
@@ -180,9 +245,18 @@ def init():
     """
     host_dot.set_data([host.x], [host.y])                                                   #Set initial host position
     planet_dot.set_data([], [])                                                             #Clear planet marker
+
     trail_line.set_data([], [])                                                             #Clear planet trail
     host_trail_line.set_data([], [])                                                        #Clear host trail (binary star system)
-    return host_dot, planet_dot, trail_line, host_trail_line
+ 
+    if use_planet3:
+        planet3_dot.set_data([planet3.x], [planet3.y])
+        planet3_trail.set_data([], [])
+    else:
+        planet3_dot.set_data([], [])
+        planet3_trail.set_data([], [])
+
+    return host_dot, planet_dot, planet3_dot, trail_line, planet3_trail, host_trail_line
 
 def update(frame):
     """
@@ -199,26 +273,43 @@ def update(frame):
             host_trail_line
     """
     fayman(host, planet, dt)                                                                #Recalculate for one timestep
+    
     host_dot.set_data([host.x], [host.y])                                                   #Update host marker
     planet_dot.set_data([planet.x], [planet.y])                                             #Update planet marker
+
     trail_line.set_data(planet.x_history, planet.y_history)                                 #Update planet trail  
     host_trail_line.set_data(host.x_history, host.y_history)                                #Update host trail
+  
+    if use_planet3:
+        planet3_dot.set_data([planet3.x], [planet3.y])                                      #Update planet3 marker
+        planet3_trail.set_data(planet3.x_history, planet3.y_history)                        #Update planet3 trail
+    else:
+        planet3_dot.set_data([], [])                                                        #Hide planet3
+        planet3_trail.set_data([], [])                                                      #Hide planet3 trail
+
     t = frame*dt                                                                            #Compute simulated time
     print("Time:", t)                                                                       #Print time
-    return host_dot, planet_dot, trail_line, host_trail_line
+    return host_dot, planet_dot, planet3_dot, trail_line, planet3_trail, host_trail_line
 
-animation = FuncAnimation(fig, update, init_func=init, interval=20, blit=True)              #Create animation
+animation = FuncAnimation(fig, update, init_func=init, interval=20, blit=False)
 plt.show()                                                                                  #Display animation window
 
 
 #Computations to answer questions:
+x_rel = []                                                                                  #Initialize relative x list
+y_rel = []                                                                                  #Initialize relative y list
 
-x_rel = []                                                                                  #List for relative x positions
-y_rel = []                                                                                  #List for relative y positions
+if use_planet3:
+    for i in range(len(planet3.x_history)):                                                 #Loop through history
+        x_com = (host.mass*host.x_history[i] + planet.mass*planet.x_history[i])/(host.mass + planet.mass) #Compute barycenter x
+        y_com = (host.mass*host.y_history[i] + planet.mass*planet.y_history[i])/(host.mass + planet.mass) #Compute barycenter y
 
-for i in range(len(planet.x_history)):                                                      #Loop through all recorded positions
-    x_rel.append(planet.x_history[i] - host.x_history[i])                                   #Relative x (planet-host)
-    y_rel.append(planet.y_history[i] - host.y_history[i])                                   #Relative y
+        x_rel.append(planet3.x_history[i] - x_com)                                          #Compute relative x
+        y_rel.append(planet3.y_history[i] - y_com)                                          #Compute relative y
+else:
+    for i in range(len(planet.x_history)):                                                  #Loop through history
+        x_rel.append(planet.x_history[i] - host.x_history[i])                               #Compute relative x
+        y_rel.append(planet.y_history[i] - host.y_history[i])                               #Compute relative y                             
 
 #Eccentricity calculations
 c_distance = []                                                                             #List for seperation distances
