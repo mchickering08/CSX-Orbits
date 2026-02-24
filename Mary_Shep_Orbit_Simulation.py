@@ -2,7 +2,7 @@
 ┌───────────────────────────────────────────────────────────────────────────┐
 │                            Orbit Simulation                               │
 ├───────────────────────────────────────────────────────────────────────────┤
-│ Name: Mary Chickering and Shep Okeefe                                     │
+│ Name: Mary Chickering and Shep O'Keeffe                                   │
 | Course: CSX                                                               |
 │ Log: Finished project (1.0)                                               |
 | Bugs: N/K                                                                 │
